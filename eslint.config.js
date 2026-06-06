@@ -21,16 +21,27 @@ const nuxtGlobals = {
   computed: "readonly",
   watch: "readonly",
   onMounted: "readonly",
+  // project composables (Nuxt auto-imports)
+  useAppearance: "readonly",
+  useFeed: "readonly",
+  useSearch: "readonly",
+  useToast: "readonly",
 };
 
 export default [
   {
-    ignores: [".nuxt/**", ".output/**", "dist/**", "node_modules/**"],
+    ignores: [
+      ".nuxt/**",
+      ".netlify/**",
+      ".output/**",
+      "dist/**",
+      "node_modules/**",
+    ],
   },
   eslint.configs.recommended,
   ...pluginVue.configs["flat/recommended"],
   {
-    files: ["**/*.ts", "**/*.vue"],
+    files: ["**/*.js", "**/*.ts", "**/*.vue"],
     languageOptions: {
       parserOptions: {
         parser: tsParser,
