@@ -1,4 +1,4 @@
-# Reeder
+# Reader
 
 A personal content feed aggregator built with Nuxt 4, Vue.js, and Tailwind CSS. Deployed on Netlify.
 
