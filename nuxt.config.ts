@@ -1,4 +1,9 @@
 import tailwindcss from "@tailwindcss/vite";
+import { fileURLToPath } from "node:url";
+
+const mainCss = fileURLToPath(
+  new URL("./app/assets/css/main.css", import.meta.url),
+);
 
 export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
@@ -7,7 +12,7 @@ export default defineNuxtConfig({
   nitro: {
     preset: "netlify",
   },
-  css: ["~/assets/css/main.css"],
+  css: [mainCss],
   vite: {
     plugins: [tailwindcss()],
     optimizeDeps: {
