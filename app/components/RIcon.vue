@@ -11,6 +11,7 @@ const inner = computed(() => ICONS[props.name] || "");
 </script>
 
 <template>
+  <!-- eslint-disable vue/no-v-html -->
   <svg
     class="ricon"
     :width="size"

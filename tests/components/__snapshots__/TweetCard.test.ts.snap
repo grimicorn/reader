@@ -1,0 +1,13 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`TweetCard > matches snapshot 1`] = `
+"<article class="card card-tweet">
+  <div class="tw-head"><span class="avatar src-tweet">TU</span>
+    <div class="tw-id"><b>Test User</b><span class="tw-handle">@testuser · 3h</span></div><span class="tw-glyph src-tweet"><ricon name="chat" size="15"></ricon></span>
+  </div>
+  <p class="tw-text">This is a test tweet body text.</p>
+  <div class="tw-actions"><span><ricon name="heart" size="15"></ricon>42</span><span><ricon name="repost" size="15"></ricon>12</span><button class="icon-btn ml-auto">
+      <ricon name="bookmark" size="15"></ricon>
+    </button></div>
+</article>"
+`;

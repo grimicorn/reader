@@ -13,6 +13,7 @@ const mark = computed(() => LOGO_MARKS[props.variant] || LOGO_MARKS.stack);
 
 <template>
   <span class="rlogo">
+    <!-- eslint-disable vue/no-v-html -->
     <svg
       class="rlogo-mark"
       :width="size"

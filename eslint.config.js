@@ -44,6 +44,7 @@ export default [
     files: ["**/*.js", "**/*.ts", "**/*.vue"],
     languageOptions: {
       parserOptions: {
+        // Tells eslint-plugin-vue to use TS parser for <script> blocks
         parser: tsParser,
         extraFileExtensions: [".vue"],
       },
@@ -59,6 +60,14 @@ export default [
         { argsIgnorePattern: "^_", varsIgnorePattern: "^_" },
       ],
       "vue/html-self-closing": "off",
+    },
+  },
+  {
+    // Standalone .ts files need the TS parser set directly.
+    // .vue files must NOT be included here — they use eslint-plugin-vue's own parser.
+    files: ["**/*.ts"],
+    languageOptions: {
+      parser: tsParser,
     },
   },
   {

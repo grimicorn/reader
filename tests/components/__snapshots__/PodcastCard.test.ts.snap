@@ -1,0 +1,24 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`PodcastCard > matches snapshot 1`] = `
+"<article class="card card-podcast">
+  <div class="pod-top">
+    <div class="pod-cover ph ratio-1x1" data-label="cover">
+      <ricon name="mic" size="20"></ricon>
+    </div>
+    <div class="pod-main">
+      <div class="card-head">
+        <sourcetag item="[object Object]"></sourcetag>
+        <cardactions item="[object Object]"></cardactions>
+      </div>
+      <h3 class="card-title">Test Episode Title</h3>
+      <p class="card-excerpt sm">Episode excerpt.</p>
+    </div>
+  </div>
+  <div class="pod-player"><button class="pod-play" title="Play episode">
+      <ricon name="play" size="15"></ricon>
+    </button>
+    <div class="pod-bar"><i style="width: 30%;"></i></div><span class="pod-dur">30% · 45:00</span>
+  </div>
+</article>"
+`;
