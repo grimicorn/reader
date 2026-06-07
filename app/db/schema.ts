@@ -14,7 +14,7 @@ import { relations } from "drizzle-orm";
 // Users/integrations/userSettings live in Neon only.
 // No FK references: PGlite is a local single-user store, no cross-table enforcement needed.
 
-const feeds = pgTable(
+export const feeds = pgTable(
   "feeds",
   {
     id: serial("id").primaryKey(),
@@ -30,7 +30,7 @@ const feeds = pgTable(
   (table) => [uniqueIndex("feeds_user_id_url_idx").on(table.userId, table.url)],
 );
 
-const feedItems = pgTable(
+export const feedItems = pgTable(
   "feed_items",
   {
     id: serial("id").primaryKey(),
@@ -58,10 +58,10 @@ export const syncQueue = pgTable("sync_queue", {
   syncedAt: timestamp("synced_at"),
 });
 
-const feedsRelations = relations(feeds, ({ many }) => ({
+export const feedsRelations = relations(feeds, ({ many }) => ({
   items: many(feedItems),
 }));
 
-const feedItemsRelations = relations(feedItems, ({ one }) => ({
+export const feedItemsRelations = relations(feedItems, ({ one }) => ({
   feed: one(feeds, { fields: [feedItems.feedId], references: [feeds.id] }),
 }));
