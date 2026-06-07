@@ -14,7 +14,7 @@ export function useSyncQueue() {
   }
 
   async function flushSyncQueue() {
-    if (typeof navigator !== "undefined" && !navigator.onLine) return;
+    if (!navigator.onLine) return;
 
     const db = await useClientDb();
     const pending = await db.query.syncQueue.findMany({

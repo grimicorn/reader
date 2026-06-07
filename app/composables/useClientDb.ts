@@ -1,7 +1,20 @@
 import { PGlite } from "@electric-sql/pglite";
 import { drizzle } from "drizzle-orm/pglite";
-import * as schema from "~/db/schema";
+import {
+  feeds,
+  feedItems,
+  feedsRelations,
+  feedItemsRelations,
+  syncQueue,
+} from "~/db/schema";
 
+const schema = {
+  feeds,
+  feedItems,
+  feedsRelations,
+  feedItemsRelations,
+  syncQueue,
+};
 type ClientDb = ReturnType<typeof drizzle<typeof schema>>;
 
 let _db: ClientDb | null = null;
