@@ -81,4 +81,9 @@ config.global.stubs = {
   PodcastCard: true,
   TweetCard: true,
   PhotoCard: true,
+  AvatarButton: true,
+  SettingsFeeds: true,
+  SettingsConnections: true,
+  SettingsReading: true,
+  SettingsAccount: true,
 };
