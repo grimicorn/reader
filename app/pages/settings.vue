@@ -1,12 +1,28 @@
 <script setup>
 import { useAppearance, useFeed } from "#imports";
-import { ref, reactive } from "vue";
+import { ref, reactive, computed } from "vue";
 
 const { state, addFeed, removeFeed, toggleConn } = useFeed();
 const { state: appearance, accentList } = useAppearance();
 
 const settingsTab = ref("feeds");
 const prefs = reactive({ autoplay: false, compactNotif: true });
+
+const { user } = useUser();
+const clerk = useClerk();
+
+const initials = computed(() => {
+  const u = user.value;
+  if (!u) return "?";
+  return [u.firstName, u.lastName]
+    .filter(Boolean)
+    .map((n) => n[0].toUpperCase())
+    .join("") || "?";
+});
+
+function handleSignOut() {
+  clerk.value?.signOut({ redirectUrl: "/login" });
+}
 </script>
 
 <template>
@@ -288,23 +304,25 @@ const prefs = reactive({ autoplay: false, compactNotif: true });
         <!-- ACCOUNT -->
         <section v-else class="set-section">
           <h2>Account</h2>
-          <p class="desc">You're signed in as the demo reader.</p>
+          <p class="desc">Manage your Reader account.</p>
           <div class="conn">
             <span
               class="avatar-btn"
               style="width: 46px; height: 46px; font-size: 15px"
-              >JR</span
+              >{{ initials }}</span
             >
             <div class="conn-info">
-              <div class="conn-name">Jordan Reads</div>
-              <div class="conn-desc">reader@example.com</div>
+              <div class="conn-name">{{ user?.fullName }}</div>
+              <div class="conn-desc">
+                {{ user?.primaryEmailAddress?.emailAddress }}
+              </div>
               <div class="conn-since">
                 Free plan · {{ state.items.length }} items today
               </div>
             </div>
-            <NuxtLink to="/login" class="btn"
-              ><RIcon name="logout" :size="16" /> Sign out</NuxtLink
-            >
+            <button class="btn" @click="handleSignOut">
+              <RIcon name="logout" :size="16" /> Sign out
+            </button>
           </div>
         </section>
       </div>

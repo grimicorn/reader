@@ -7,6 +7,7 @@ const mainCss = fileURLToPath(
 
 export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
+  modules: ["@clerk/nuxt"],
   runtimeConfig: {
     databaseUrl: "",
   },
@@ -52,5 +53,9 @@ export default defineNuxtConfig({
         },
       ],
     },
+  },
+  routeRules: {
+    // Exact redirect
+    "/": { redirect: "/dashboard" },
   },
 });

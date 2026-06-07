@@ -10,7 +10,9 @@ const { openSearch } = useSearch();
     <div class="wrap appbar-in">
       <NuxtLink to="/" class="brand"><RLogo :size="28" words /></NuxtLink>
       <nav class="nav">
-        <NuxtLink to="/" :class="{ active: route.path === '/' }"
+        <NuxtLink
+          to="/dashboard"
+          :class="{ active: route.path === '/dashboard' }"
           >dashboard<span class="num">01</span></NuxtLink
         >
         <NuxtLink to="/settings" :class="{ active: route.path === '/settings' }"

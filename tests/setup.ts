@@ -22,6 +22,23 @@ globalThis.useRouter = vi.fn(() => ({
 }));
 globalThis.definePageMeta = vi.fn();
 
+// Nuxt / Nitro handler wrappers — identity so the inner function is what gets exported
+globalThis.defineNuxtRouteMiddleware = (fn: Function) => fn;
+globalThis.defineEventHandler = (fn: Function) => fn;
+
+// Clerk composable stubs
+import { ref, computed } from "vue";
+const mockClerkUser = ref({
+  firstName: "Demo",
+  lastName: "User",
+  fullName: "Demo User",
+  primaryEmailAddress: { emailAddress: "demo@example.com" },
+  imageUrl: "",
+});
+globalThis.useUser = () => ({ user: computed(() => mockClerkUser.value) });
+globalThis.useClerk = () => ({ signOut: vi.fn() });
+globalThis.useAuth = vi.fn(() => ({ isSignedIn: ref(false) }));
+
 // Global stubs — covers Nuxt built-ins, Vue Transition, and every app
 // component that Nuxt auto-imports. Registering them here lets Vue resolve
 // the names cleanly instead of emitting "Failed to resolve component" warnings.

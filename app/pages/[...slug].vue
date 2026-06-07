@@ -21,7 +21,7 @@ const { openSearch } = useSearch();
         The feed you're looking for moved, expired, or never existed.
       </p>
       <div class="flex justify-center gap-2.5">
-        <button class="btn btn-primary" @click="navigateTo('/')">
+        <button class="btn btn-primary" @click="navigateTo('/dashboard')">
           <RIcon name="inbox" :size="16" /> Back to your feed
         </button>
         <button class="btn" @click="openSearch">

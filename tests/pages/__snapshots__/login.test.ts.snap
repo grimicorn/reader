@@ -14,28 +14,7 @@ exports[`login page > matches snapshot 1`] = `
     </div>
   </aside>
   <div class="auth-main">
-    <div class="auth-card">
-      <r-logo-stub size="34"></r-logo-stub>
-      <h1>Welcome back</h1>
-      <p class="lede">Sign in to pick up your feed where you left off.</p>
-      <div class="oauth"><button class="btn">
-          <r-icon-stub name="sparkle" size="15"></r-icon-stub> Google
-        </button><button class="btn">
-          <r-icon-stub name="user" size="15"></r-icon-stub> Apple
-        </button></div>
-      <div class="auth-sep">or with email</div>
-      <div class="auth-field"><label>Email</label>
-        <div class="field">
-          <r-icon-stub name="user" size="16"></r-icon-stub><input type="email" placeholder="you@domain.com" value="reader@example.com">
-        </div>
-      </div>
-      <div class="auth-field"><label>Password</label>
-        <div class="field">
-          <r-icon-stub name="link" size="16"></r-icon-stub><input type="password" placeholder="••••••••" value="password">
-        </div>
-      </div><button class="btn btn-primary btn-block" style="margin-top: 8px;"> Sign in <r-icon-stub name="arrowRight" size="16"></r-icon-stub></button>
-      <div class="auth-foot"> New to Reader? <a>Create an account</a></div>
-    </div>
+    <signin></signin>
   </div>
 </div>"
 `;
