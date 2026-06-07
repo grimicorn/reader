@@ -14,6 +14,7 @@ const nuxtGlobals = {
   useRoute: "readonly",
   useRouter: "readonly",
   useFetch: "readonly",
+  $fetch: "readonly",
   useAsyncData: "readonly",
   useState: "readonly",
   navigateTo: "readonly",
@@ -21,11 +22,28 @@ const nuxtGlobals = {
   computed: "readonly",
   watch: "readonly",
   onMounted: "readonly",
+  // Clerk (@clerk/nuxt auto-imports)
+  useAuth: "readonly",
+  useUser: "readonly",
+  useClerk: "readonly",
   // project composables (Nuxt auto-imports)
   useAppearance: "readonly",
   useFeed: "readonly",
   useSearch: "readonly",
   useToast: "readonly",
+  useClientDb: "readonly",
+  useSyncQueue: "readonly",
+};
+
+// Nitro / H3 globals — server-only auto-imports
+const nitroGlobals = {
+  defineEventHandler: "readonly",
+  createError: "readonly",
+  readBody: "readonly",
+  getHeader: "readonly",
+  // server/utils auto-imports
+  useDb: "readonly",
+  getOrCreateUser: "readonly",
 };
 
 export default [
@@ -68,6 +86,23 @@ export default [
     files: ["**/*.ts"],
     languageOptions: {
       parser: tsParser,
+    },
+  },
+  {
+    // Nitro server files: add H3/Nitro auto-imports and allow module-augmentation
+    // interface names that ESLint incorrectly flags as unused (e.g. H3EventContext).
+    files: ["server/**/*.ts"],
+    languageOptions: {
+      globals: nitroGlobals,
+    },
+    rules: {
+      "no-unused-vars": [
+        "error",
+        {
+          argsIgnorePattern: "^_",
+          varsIgnorePattern: "^_|^[A-Z][a-zA-Z0-9]+Context$",
+        },
+      ],
     },
   },
   {

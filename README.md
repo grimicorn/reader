@@ -116,6 +116,40 @@ const clerk = useClerk();
 clerk.value?.signOut({ redirectUrl: "/login" });
 ```
 
+## Offline / PGlite
+
+The app uses [PGlite](https://pglite.dev) (`@electric-sql/pglite`) — a WASM build of Postgres running entirely in the browser, persisted via IndexedDB. This allows reads and writes to work without a network connection.
+
+### How it works
+
+1. `app/composables/useClientDb.ts` — lazy-initialises a PGlite instance at `idb://reader-app` and applies the DDL migrations on first load. Returns a Drizzle client with the same query API as the server.
+2. `app/db/schema.ts` — client-side schema with three tables: `feeds`, `feed_items`, and `sync_queue`. No server-only tables (users, integrations, userSettings).
+3. `app/composables/useSyncQueue.ts` — queues offline mutations to `sync_queue`, then flushes them to `POST /api/sync` when back online.
+4. `app/plugins/sync.client.ts` — registers `online` and `visibilitychange` listeners that trigger a flush automatically.
+5. `server/api/sync.post.ts` — applies queued mutations (`markRead`, `star`, `save`) to the Neon server DB.
+
+### Usage
+
+```ts
+// Read or write locally (works offline)
+const db = await useClientDb();
+const items = await db.query.feedItems.findMany({ ... });
+
+// Queue an action for server sync
+const { queueAction } = useSyncQueue();
+await queueAction("markRead", { guid: item.guid });
+
+// Flush manually (called automatically on reconnect)
+const { flushSyncQueue } = useSyncQueue();
+await flushSyncQueue();
+```
+
+### Notes
+
+- PGlite is excluded from Vite's `optimizeDeps` (`exclude: ['@electric-sql/pglite']`) to prevent Vite from trying to pre-bundle the WASM binary.
+- The client schema intentionally omits foreign key constraints — PGlite is a local cache, not the source of truth.
+- `sync_queue.syncedAt` is `null` for pending items; the flush loop stops on the first failure and retries on the next trigger.
+
 ## Development
 
 Start the dev server at `http://localhost:3000`:
