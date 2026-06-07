@@ -1,23 +1,23 @@
-import { eq } from 'drizzle-orm'
-import type { InferSelectModel } from 'drizzle-orm'
-import { users } from '../db/schema'
+import { eq } from "drizzle-orm";
+import type { InferSelectModel } from "drizzle-orm";
+import { users } from "../db/schema";
 
-export type DbUser = InferSelectModel<typeof users>
+export type DbUser = InferSelectModel<typeof users>;
 
-declare module 'h3' {
+declare module "h3" {
   interface H3EventContext {
-    user?: DbUser
+    user?: DbUser;
   }
 }
 
 export async function getOrCreateUser(providerId: string): Promise<DbUser> {
-  const db = useDb()
+  const db = useDb();
 
   const existing = await db.query.users.findFirst({
     where: eq(users.providerId, providerId),
-  })
-  if (existing) return existing
+  });
+  if (existing) return existing;
 
-  const [created] = await db.insert(users).values({ providerId }).returning()
-  return created
+  const [created] = await db.insert(users).values({ providerId }).returning();
+  return created;
 }

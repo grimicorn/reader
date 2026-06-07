@@ -14,10 +14,12 @@ const clerk = useClerk();
 const initials = computed(() => {
   const u = user.value;
   if (!u) return "?";
-  return [u.firstName, u.lastName]
-    .filter(Boolean)
-    .map((n) => n[0].toUpperCase())
-    .join("") || "?";
+  return (
+    [u.firstName, u.lastName]
+      .filter(Boolean)
+      .map((n) => n[0].toUpperCase())
+      .join("") || "?"
+  );
 });
 
 function handleSignOut() {

@@ -23,12 +23,12 @@ Copy `.env.example` to `.env` and fill in the values before running the app:
 cp .env.example .env
 ```
 
-| Variable | Purpose |
-|---|---|
-| `DATABASE_URL` | Neon connection string — used by `drizzle-kit` CLI commands |
-| `NUXT_DATABASE_URL` | Same Neon connection string — read by Nuxt at runtime |
-| `NUXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key (safe to expose to the browser) |
-| `NUXT_CLERK_SECRET_KEY` | Clerk secret key (server-only, never exposed to the client) |
+| Variable                            | Purpose                                                     |
+| ----------------------------------- | ----------------------------------------------------------- |
+| `DATABASE_URL`                      | Neon connection string — used by `drizzle-kit` CLI commands |
+| `NUXT_DATABASE_URL`                 | Same Neon connection string — read by Nuxt at runtime       |
+| `NUXT_PUBLIC_CLERK_PUBLISHABLE_KEY` | Clerk publishable key (safe to expose to the browser)       |
+| `NUXT_CLERK_SECRET_KEY`             | Clerk secret key (server-only, never exposed to the client) |
 
 Get your Clerk keys from the [Clerk dashboard](https://dashboard.clerk.com) → API Keys.
 Get your Neon connection string from the [Neon console](https://console.neon.tech) → your project → Connection Details.
@@ -41,13 +41,13 @@ The app uses [Drizzle ORM](https://orm.drizzle.team) with a [Neon](https://neon.
 
 The schema lives in [`server/db/schema.ts`](server/db/schema.ts). Tables:
 
-| Table | Description |
-|---|---|
-| `users` | One row per authenticated user, keyed by Clerk's `userId` |
-| `feeds` | RSS and podcast feeds belonging to a user |
-| `feed_items` | Individual items fetched from a feed |
-| `integrations` | OAuth tokens for YouTube, Instagram, and Twitter (encrypted at rest) |
-| `user_settings` | Per-user reading preferences |
+| Table           | Description                                                          |
+| --------------- | -------------------------------------------------------------------- |
+| `users`         | One row per authenticated user, keyed by Clerk's `userId`            |
+| `feeds`         | RSS and podcast feeds belonging to a user                            |
+| `feed_items`    | Individual items fetched from a feed                                 |
+| `integrations`  | OAuth tokens for YouTube, Instagram, and Twitter (encrypted at rest) |
+| `user_settings` | Per-user reading preferences                                         |
 
 ### Database commands
 
@@ -82,12 +82,12 @@ npm run db:studio
 ```ts
 // server/api/example.get.ts
 export default defineEventHandler((event) => {
-  const db = useDb()
-  const user = event.context.user  // set by server/middleware/auth.ts
+  const db = useDb();
+  const user = event.context.user; // set by server/middleware/auth.ts
   return db.query.feedItems.findMany({
     where: (t, { eq }) => eq(t.feedId, user.id),
-  })
-})
+  });
+});
 ```
 
 ## Authentication
@@ -104,16 +104,16 @@ Authentication is handled by [Clerk](https://clerk.com) via the [`@clerk/nuxt`](
 ### Client composables
 
 ```ts
-const { user } = useUser()          // reactive Clerk user object
-const clerk = useClerk()            // ShallowRef<Clerk> — low-level access
-const { isSignedIn } = useAuth()    // reactive auth state
+const { user } = useUser(); // reactive Clerk user object
+const clerk = useClerk(); // ShallowRef<Clerk> — low-level access
+const { isSignedIn } = useAuth(); // reactive auth state
 ```
 
 ### Sign out
 
 ```ts
-const clerk = useClerk()
-clerk.value?.signOut({ redirectUrl: '/login' })
+const clerk = useClerk();
+clerk.value?.signOut({ redirectUrl: "/login" });
 ```
 
 ## Development
