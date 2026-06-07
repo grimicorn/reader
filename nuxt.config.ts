@@ -7,6 +7,9 @@ const mainCss = fileURLToPath(
 
 export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
+  runtimeConfig: {
+    databaseUrl: "",
+  },
   devtools: { enabled: true },
   future: { compatibilityVersion: 4 },
   nitro: {
