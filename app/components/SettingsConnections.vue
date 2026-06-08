@@ -1,5 +1,11 @@
 <script setup>
-const { state, toggleConn } = useFeed();
+const { items, loading, error, load, connect, disconnect } = useConnections();
+onMounted(load);
+
+function toggleConn(c) {
+  if (c.connected) disconnect(c.id);
+  else connect(c.id);
+}
 </script>
 
 <template>
@@ -8,8 +14,9 @@ const { state, toggleConn } = useFeed();
     <p class="desc">
       Link YouTube, X, and Instagram to fold their timelines into your feed.
     </p>
+    <p v-if="error" class="desc conn-error">{{ error }}</p>
     <div class="conn-grid">
-      <div v-for="c in state.connections" :key="c.id" class="conn">
+      <div v-for="c in items" :key="c.id" class="conn">
         <span class="conn-ic" :style="{ '--c': c.color }">
           <RIcon
             :name="
@@ -27,13 +34,14 @@ const { state, toggleConn } = useFeed();
             {{ c.name }} <span v-if="c.connected" class="live"></span>
           </div>
           <div class="conn-desc">{{ c.desc }}</div>
-          <div v-if="c.connected" class="conn-since">
-            {{ c.account }} · {{ c.since }}
+          <div v-if="c.connected && (c.account || c.since)" class="conn-since">
+            {{ [c.account, c.since].filter(Boolean).join(" · ") }}
           </div>
         </div>
         <button
           class="btn"
           :class="{ 'btn-primary': !c.connected }"
+          :disabled="loading"
           @click="toggleConn(c)"
         >
           {{ c.connected ? "Disconnect" : "Connect" }}

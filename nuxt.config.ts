@@ -13,6 +13,8 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     databaseUrl: "",
+    googleClientId: "",
+    googleClientSecret: "",
   },
   devtools: { enabled: true },
   future: { compatibilityVersion: 4 },
