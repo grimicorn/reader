@@ -121,6 +121,9 @@ describe("GET /api/auth/youtube/callback", () => {
     mockGetQuery.mockReturnValue({ code: "auth-code", state: "state123" });
     mockGetCookie.mockReturnValue("state123");
     await handler(event);
-    expect(mockSendRedirect).toHaveBeenCalledWith(event, "/settings");
+    expect(mockSendRedirect).toHaveBeenCalledWith(
+      event,
+      "/settings/connections",
+    );
   });
 });

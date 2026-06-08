@@ -49,5 +49,5 @@ export default defineEventHandler(async (event) => {
       },
     });
 
-  return sendRedirect(event, "/settings");
+  return sendRedirect(event, "/settings/connections");
 });
