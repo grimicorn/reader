@@ -21,6 +21,6 @@
       "~/*": ["./app/*"]
     }
   },
-  "include": ["app/**/*", "tests/**/*", "*.ts", "*.d.ts"],
+  "include": ["app/**/*", "tests/**/*", "e2e/**/*", "*.ts", "*.d.ts"],
   "exclude": ["node_modules", ".nuxt", ".output", "dist"]
 }

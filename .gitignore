@@ -17,5 +17,12 @@ npm-debug.log*
 .env
 .env.*
 !.env.example
+!.env.*.example
 /_scratch.md
 .netlify
+
+# E2E
+e2e/.auth/
+e2e/.clerk-user-id
+e2e/report/
+test-results
