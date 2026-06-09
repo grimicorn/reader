@@ -19,7 +19,12 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:studio": "drizzle-kit studio"
+    "db:studio": "drizzle-kit studio",
+    "e2e": "playwright test",
+    "e2e:headed": "playwright test --headed",
+    "e2e:ui": "playwright test --ui",
+    "e2e:debug": "playwright test --debug",
+    "e2e:report": "playwright show-report e2e/report"
   },
   "dependencies": {
     "@clerk/nuxt": "^2.5.3",
@@ -29,7 +34,10 @@
     "nuxt": "^4.0.0"
   },
   "devDependencies": {
+    "@clerk/backend": "^3.5.0",
+    "@clerk/testing": "^2.0.35",
     "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.60.0",
     "@tailwindcss/vite": "^4.3.0",
     "@typescript-eslint/parser": "^8.0.0",
     "@vitejs/plugin-vue": "^6.0.7",
