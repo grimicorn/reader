@@ -1,5 +1,9 @@
-const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
+// Configurable so e2e tests can point these at a local mock server.
+// Set GOOGLE_TOKEN_URL / YOUTUBE_CHANNELS_URL in the environment to override.
+const GOOGLE_TOKEN_URL =
+  process.env.GOOGLE_TOKEN_URL ?? "https://oauth2.googleapis.com/token";
 const YOUTUBE_CHANNELS_URL =
+  process.env.YOUTUBE_CHANNELS_URL ??
   "https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true";
 
 const YOUTUBE_SCOPES = [

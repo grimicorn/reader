@@ -1,4 +1,5 @@
 import { getOrCreateTestClerkUser } from "./helpers/clerk";
+import { startMockServer } from "./mock-server";
 import { truncateE2eData, seedE2eData } from "./seed";
 
 export default async function globalSetup() {
@@ -7,6 +8,8 @@ export default async function globalSetup() {
 
   // The e2e Neon branch is forked from main and already has the schema.
   // For schema changes, run: DATABASE_URL=<e2e_url> npm run db:push
+
+  await startMockServer();
 
   console.log("\n[e2e setup] Truncating existing data...");
   await truncateE2eData(dbUrl);

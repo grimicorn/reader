@@ -17,6 +17,10 @@ if (
 }
 
 const BASE_URL = process.env.E2E_BASE_URL ?? "http://localhost:3000";
+// Mock server intercepts outbound OAuth API calls from the Nuxt server process.
+// Must match the port used in e2e/mock-server.ts.
+const MOCK_PORT = process.env.E2E_MOCK_SERVER_PORT ?? "3099";
+const MOCK_BASE_URL = `http://127.0.0.1:${MOCK_PORT}`;
 
 export default defineConfig({
   testDir: "./e2e/tests",
@@ -84,6 +88,10 @@ export default defineConfig({
       NUXT_CLERK_SECRET_KEY: process.env.NUXT_CLERK_SECRET_KEY ?? "",
       NUXT_GOOGLE_CLIENT_ID: process.env.NUXT_GOOGLE_CLIENT_ID ?? "",
       NUXT_GOOGLE_CLIENT_SECRET: process.env.NUXT_GOOGLE_CLIENT_SECRET ?? "",
+      // Route outbound Google API calls to the local mock server so e2e tests
+      // never hit the real Google APIs. Add equivalent vars here for X/Instagram.
+      GOOGLE_TOKEN_URL: `${MOCK_BASE_URL}/token`,
+      YOUTUBE_CHANNELS_URL: `${MOCK_BASE_URL}/youtube/v3/channels?part=snippet&mine=true`,
     },
     stdout: "pipe",
     stderr: "pipe",
