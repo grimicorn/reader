@@ -1,4 +1,5 @@
 import { feeds } from "../db/schema";
+import { validateFeedUrl } from "../utils/feedValidator";
 
 function detectSource(url: string): string {
   return /podcast|simplecast|megaphone|\.mp3|audio/i.test(url)
@@ -15,12 +16,21 @@ export default defineEventHandler(async (event) => {
   if (!url?.trim())
     throw createError({ statusCode: 400, statusMessage: "URL is required" });
 
+  const trimmedUrl = url.trim();
+
+  const isValid = await validateFeedUrl(trimmedUrl);
+  if (!isValid)
+    throw createError({
+      statusCode: 422,
+      statusMessage: "URL does not point to a valid RSS or Atom feed",
+    });
+
   const [feed] = await useDb()
     .insert(feeds)
     .values({
       userId: user.id,
-      url: url.trim(),
-      source: detectSource(url.trim()),
+      url: trimmedUrl,
+      source: detectSource(trimmedUrl),
     })
     .returning();
 
