@@ -26,21 +26,12 @@ const pageMatchesQuery = (page, query) =>
   page.sub.toLowerCase().includes(query);
 
 const recentItems = (items) =>
-  items.slice(0, 6).map((ref) => ({ kind: "item", ref }));
+  items.slice(0, 6).map((item) => ({ kind: "item", ref: item }));
 
+// Return the full server result object as ref so the renderer reads real
+// type and source fields rather than fabricated values.
 const serverResultItems = (results) =>
-  results.map((result) => ({
-    kind: "item",
-    ref: {
-      id: result.id,
-      type: "article",
-      title: result.title,
-      source: result.feedId?.toString() ?? "",
-      time: result.publishedAt
-        ? new Date(result.publishedAt).toLocaleDateString()
-        : "",
-    },
-  }));
+  results.map((result) => ({ kind: "item", ref: result }));
 
 const searchGroups = computed(() => {
   const query = state.query.trim().toLowerCase();
@@ -68,24 +59,52 @@ const searchFlat = computed(() => searchGroups.value.flatMap((g) => g.rows));
 const srcVar = (type) => `var(--${SOURCES[type]?.cls ?? "accent"})`;
 const srcLabel = (type) => SOURCES[type]?.label ?? type;
 
+// Tracks the AbortController for the current in-flight /api/search request.
+// Replaced each time a new request is fired so older responses are ignored.
+let activeAbortController = null;
+
+function cancelPendingSearch() {
+  if (activeAbortController) {
+    activeAbortController.abort();
+    activeAbortController = null;
+  }
+}
+
 async function fetchSearchResults(query) {
+  cancelPendingSearch();
+
   if (!query) {
     serverResults.value = [];
     searchError.value = null;
+    searchLoading.value = false;
     return;
   }
+
+  const controller = new AbortController();
+  activeAbortController = controller;
 
   searchLoading.value = true;
   searchError.value = null;
 
   try {
-    const results = await $fetch(`/api/search?q=${encodeURIComponent(query)}`);
-    serverResults.value = results;
+    const results = await $fetch(`/api/search?q=${encodeURIComponent(query)}`, {
+      signal: controller.signal,
+    });
+
+    // Only commit if this controller is still the active one (i.e. not superseded).
+    if (activeAbortController === controller) {
+      serverResults.value = results;
+    }
   } catch (error) {
-    searchError.value = error;
-    serverResults.value = [];
+    if (activeAbortController === controller) {
+      searchError.value = error;
+      serverResults.value = [];
+    }
   } finally {
-    searchLoading.value = false;
+    if (activeAbortController === controller) {
+      searchLoading.value = false;
+      activeAbortController = null;
+    }
   }
 }
 
@@ -128,6 +147,9 @@ watch(
   (newQuery) => {
     state.cursor = 0;
     clearTimeout(debounceTimer);
+    // Cancel any in-flight request immediately so it cannot overwrite results
+    // for the new query while the debounce delay is pending.
+    cancelPendingSearch();
     debounceTimer = setTimeout(() => {
       fetchSearchResults(newQuery.trim());
     }, 300);
@@ -138,6 +160,8 @@ watch(
   () => state.open,
   (isOpen) => {
     if (!isOpen) {
+      clearTimeout(debounceTimer);
+      cancelPendingSearch();
       serverResults.value = [];
       searchError.value = null;
       searchLoading.value = false;
@@ -149,6 +173,7 @@ onMounted(() => window.addEventListener("keydown", onKey));
 onUnmounted(() => {
   window.removeEventListener("keydown", onKey);
   clearTimeout(debounceTimer);
+  cancelPendingSearch();
 });
 </script>
 
