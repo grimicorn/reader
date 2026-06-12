@@ -70,6 +70,6 @@ export async function searchFeedItems(
   return rows.map(({ feedSource, feedTitle, ...item }) => ({
     ...item,
     type: FEED_SOURCE_TO_ITEM_TYPE[feedSource] ?? feedSource,
-    source: feedTitle ?? feedSource,
+    source: feedTitle?.trim() || feedSource,
   }));
 }
