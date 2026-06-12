@@ -1,7 +1,8 @@
-// Configurable so tests can point this at a local mock server.
-// Set FEED_FETCH_URL_OVERRIDE in the environment to replace the URL entirely,
-// or leave it unset to fetch the real URL passed to validateFeedUrl.
-export const FEED_FETCH_BASE_URL = process.env.FEED_FETCH_BASE_URL ?? "";
+// Configurable so tests can point feed fetches at a local mock server.
+// When FEED_FETCH_PROXY_URL is set the original URL is forwarded as the
+// `url` query parameter so the mock can return a canned response without
+// making real network requests.
+export const FEED_FETCH_PROXY_URL = process.env.FEED_FETCH_PROXY_URL ?? "";
 
 const RSS_ATOM_PATTERN = /<(rss|feed|rdf:RDF)[^>]*>/i;
 
@@ -9,12 +10,18 @@ export function looksLikeValidFeed(body: string): boolean {
   return RSS_ATOM_PATTERN.test(body);
 }
 
+function resolveTargetUrl(url: string): string {
+  if (!FEED_FETCH_PROXY_URL) return url;
+  const proxyUrl = new URL(FEED_FETCH_PROXY_URL);
+  proxyUrl.searchParams.set("url", url);
+  return proxyUrl.toString();
+}
+
 export async function fetchFeedBody(
   url: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<string> {
-  const targetUrl = FEED_FETCH_BASE_URL ? FEED_FETCH_BASE_URL + url : url;
-  const response = await fetchImpl(targetUrl);
+  const response = await fetchImpl(resolveTargetUrl(url));
   return response.text();
 }
 

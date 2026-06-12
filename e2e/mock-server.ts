@@ -47,6 +47,17 @@ function handle(req: IncomingMessage, res: ServerResponse): void {
     return;
   }
 
+  // ── Feed proxy: returns a minimal valid RSS feed for any URL ────────────
+  // Used by the feed validator (FEED_FETCH_PROXY_URL) so e2e tests never
+  // make real outbound HTTP requests when adding a feed.
+  if (method === "GET" && path === "/feed-proxy") {
+    const minimalRssFeed =
+      '<?xml version="1.0"?><rss version="2.0"><channel><title>Mock Feed</title></channel></rss>';
+    res.writeHead(200, { "Content-Type": "application/rss+xml" });
+    res.end(minimalRssFeed);
+    return;
+  }
+
   // Add future providers here:
   // ── X (Twitter): user lookup ─────────────────────────────────────────────
   // if (method === "GET" && path === "/2/users/me") { ... }
