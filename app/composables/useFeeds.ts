@@ -37,7 +37,7 @@ export function useFeeds() {
     const statusCode = (err as { statusCode?: number })?.statusCode;
     if (statusCode === 422)
       return "That URL doesn't appear to be a valid RSS or Atom feed";
-    return "Failed to add feed — check the URL and try again";
+    return "Failed to add feed — please try again";
   }
 
   async function add() {

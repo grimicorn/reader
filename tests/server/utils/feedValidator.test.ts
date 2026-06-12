@@ -1,9 +1,27 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   looksLikeValidFeed,
   fetchFeedBody,
   validateFeedUrl,
 } from "../../../server/utils/feedValidator";
+
+function makeMockFetch(body: string, status = 200) {
+  const encoder = new TextEncoder();
+  const encoded = encoder.encode(body);
+  const stream = new ReadableStream<Uint8Array>({
+    start(controller) {
+      controller.enqueue(encoded);
+      controller.close();
+    },
+  });
+
+  return vi.fn().mockResolvedValue({
+    ok: status >= 200 && status < 300,
+    status,
+    body: stream,
+    text: () => Promise.resolve(body),
+  });
+}
 
 describe("looksLikeValidFeed", () => {
   it("returns true for an RSS 2.0 document", () => {
@@ -34,13 +52,20 @@ describe("looksLikeValidFeed", () => {
     const body = JSON.stringify({ items: [{ title: "Post" }] });
     expect(looksLikeValidFeed(body)).toBe(false);
   });
+
+  it("returns false when feed tag appears deep inside an HTML body", () => {
+    const body = `<!DOCTYPE html><html><body><div class="rss">not a feed</div></body></html>`;
+    expect(looksLikeValidFeed(body)).toBe(false);
+  });
 });
 
 describe("fetchFeedBody", () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
   it("fetches the URL and returns the response text", async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      text: () => Promise.resolve("<rss version='2.0'/>"),
-    });
+    const mockFetch = makeMockFetch("<rss version='2.0'/>");
 
     const body = await fetchFeedBody(
       "https://example.com/feed.xml",
@@ -48,7 +73,10 @@ describe("fetchFeedBody", () => {
     );
 
     expect(body).toBe("<rss version='2.0'/>");
-    expect(mockFetch).toHaveBeenCalledWith("https://example.com/feed.xml");
+    expect(mockFetch).toHaveBeenCalledWith(
+      "https://example.com/feed.xml",
+      expect.objectContaining({ signal: expect.any(AbortSignal) }),
+    );
   });
 
   it("propagates fetch errors to the caller", async () => {
@@ -63,14 +91,55 @@ describe("fetchFeedBody", () => {
       ),
     ).rejects.toThrow("Network unreachable");
   });
+
+  it("throws when the server returns a non-2xx response", async () => {
+    const mockFetch = makeMockFetch("Not Found", 404);
+
+    await expect(
+      fetchFeedBody(
+        "https://example.com/missing.xml",
+        mockFetch as unknown as typeof fetch,
+      ),
+    ).rejects.toThrow("Feed server responded with status 404");
+  });
+
+  it("uses FEED_FETCH_PROXY_URL to override the target URL when set", async () => {
+    const originalProxyUrl = process.env.FEED_FETCH_PROXY_URL;
+    process.env.FEED_FETCH_PROXY_URL = "http://localhost:3099/feed-proxy";
+
+    try {
+      // Re-import to pick up the updated env var
+      const { fetchFeedBody: freshFetchFeedBody } = await import(
+        "../../../server/utils/feedValidator?cachebust=" + Date.now()
+      );
+
+      const mockFetch = makeMockFetch("<rss version='2.0'/>");
+
+      await freshFetchFeedBody(
+        "https://example.com/feed.xml",
+        mockFetch as unknown as typeof fetch,
+      );
+
+      const calledUrl: string = mockFetch.mock.calls[0][0];
+      const parsed = new URL(calledUrl);
+      expect(parsed.pathname).toBe("/feed-proxy");
+      expect(parsed.searchParams.get("url")).toBe(
+        "https://example.com/feed.xml",
+      );
+    } finally {
+      if (originalProxyUrl === undefined) {
+        delete process.env.FEED_FETCH_PROXY_URL;
+      } else {
+        process.env.FEED_FETCH_PROXY_URL = originalProxyUrl;
+      }
+    }
+  });
 });
 
 describe("validateFeedUrl", () => {
   it("returns true when the URL resolves to a valid RSS feed", async () => {
     const rssBody = `<?xml version="1.0"?><rss version="2.0"><channel></channel></rss>`;
-    const mockFetch = vi.fn().mockResolvedValue({
-      text: () => Promise.resolve(rssBody),
-    });
+    const mockFetch = makeMockFetch(rssBody);
 
     const result = await validateFeedUrl(
       "https://example.com/feed.xml",
@@ -82,9 +151,7 @@ describe("validateFeedUrl", () => {
 
   it("returns true when the URL resolves to a valid Atom feed", async () => {
     const atomBody = `<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom"></feed>`;
-    const mockFetch = vi.fn().mockResolvedValue({
-      text: () => Promise.resolve(atomBody),
-    });
+    const mockFetch = makeMockFetch(atomBody);
 
     const result = await validateFeedUrl(
       "https://example.com/atom.xml",
@@ -96,9 +163,7 @@ describe("validateFeedUrl", () => {
 
   it("returns false when the URL resolves to a non-feed HTML page", async () => {
     const htmlBody = `<!DOCTYPE html><html><body><p>Not a feed</p></body></html>`;
-    const mockFetch = vi.fn().mockResolvedValue({
-      text: () => Promise.resolve(htmlBody),
-    });
+    const mockFetch = makeMockFetch(htmlBody);
 
     const result = await validateFeedUrl(
       "https://example.com/",
@@ -121,10 +186,8 @@ describe("validateFeedUrl", () => {
     expect(result).toBe(false);
   });
 
-  it("returns false when the URL is unreachable and returns no body", async () => {
-    const mockFetch = vi.fn().mockResolvedValue({
-      text: () => Promise.resolve(""),
-    });
+  it("returns false when the server returns an empty body", async () => {
+    const mockFetch = makeMockFetch("");
 
     const result = await validateFeedUrl(
       "https://example.com/404",
@@ -132,5 +195,29 @@ describe("validateFeedUrl", () => {
     );
 
     expect(result).toBe(false);
+  });
+
+  it("returns false for private/loopback URLs", async () => {
+    const mockFetch = vi.fn();
+
+    const result = await validateFeedUrl(
+      "http://127.0.0.1/feed.xml",
+      mockFetch as unknown as typeof fetch,
+    );
+
+    expect(result).toBe(false);
+    expect(mockFetch).not.toHaveBeenCalled();
+  });
+
+  it("returns false for non-http/https URLs", async () => {
+    const mockFetch = vi.fn();
+
+    const result = await validateFeedUrl(
+      "file:///etc/passwd",
+      mockFetch as unknown as typeof fetch,
+    );
+
+    expect(result).toBe(false);
+    expect(mockFetch).not.toHaveBeenCalled();
   });
 });

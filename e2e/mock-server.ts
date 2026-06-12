@@ -51,6 +51,18 @@ function handle(req: IncomingMessage, res: ServerResponse): void {
   // Used by the feed validator (FEED_FETCH_PROXY_URL) so e2e tests never
   // make real outbound HTTP requests when adding a feed.
   if (method === "GET" && path === "/feed-proxy") {
+    const feedUrl = new URLSearchParams(
+      (req.url ?? "").split("?")[1] ?? "",
+    ).get("url");
+
+    if (!feedUrl) {
+      res.writeHead(400, { "Content-Type": "application/json" });
+      res.end(
+        JSON.stringify({ error: "Missing required query parameter: url" }),
+      );
+      return;
+    }
+
     const minimalRssFeed =
       '<?xml version="1.0"?><rss version="2.0"><channel><title>Mock Feed</title></channel></rss>';
     res.writeHead(200, { "Content-Type": "application/rss+xml" });
