@@ -47,6 +47,24 @@ function handle(req: IncomingMessage, res: ServerResponse): void {
     return;
   }
 
+  // ── RSS feed stub for feed-discovery e2e tests ───────────────────────────
+  if (method === "GET" && path === "/feed.xml") {
+    res.writeHead(200, {
+      "Content-Type": "application/rss+xml; charset=utf-8",
+    });
+    res.end(
+      `<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>E2E Mock Feed</title>
+    <link>${MOCK_BASE_URL}/feed.xml</link>
+    <description>Mock RSS feed for e2e tests</description>
+  </channel>
+</rss>`,
+    );
+    return;
+  }
+
   // Add future providers here:
   // ── X (Twitter): user lookup ─────────────────────────────────────────────
   // if (method === "GET" && path === "/2/users/me") { ... }

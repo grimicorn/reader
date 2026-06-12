@@ -1,4 +1,8 @@
 import { test, expect } from "@playwright/test";
+import { MOCK_BASE_URL } from "../mock-server";
+
+const FEED_INPUT_PLACEHOLDER =
+  "https://example.com or https://example.com/feed.xml";
 
 test.describe("Settings > Feeds", () => {
   test.beforeEach(async ({ page }) => {
@@ -26,13 +30,13 @@ test.describe("Settings > Feeds", () => {
 
   test("add feed input is present", async ({ page }) => {
     await expect(
-      page.locator('input[placeholder="https://example.com/feed.xml"]'),
+      page.locator(`input[placeholder="${FEED_INPUT_PLACEHOLDER}"]`),
     ).toBeVisible();
   });
 
   test("add feed button is disabled when input is empty", async ({ page }) => {
     const input = page.locator(
-      'input[placeholder="https://example.com/feed.xml"]',
+      `input[placeholder="${FEED_INPUT_PLACEHOLDER}"]`,
     );
     await expect(input).toHaveValue("");
     // Button should not submit an empty form
@@ -43,19 +47,21 @@ test.describe("Settings > Feeds", () => {
   });
 
   test("can add a new feed URL", async ({ page }) => {
-    const newUrl = "https://test-add.example.com/feed.xml";
+    // Use the mock server's /feed.xml endpoint so the discover step can resolve
+    // the URL without making real outbound HTTP requests in CI.
+    const newUrl = `${MOCK_BASE_URL}/feed.xml`;
     await page
-      .locator('input[placeholder="https://example.com/feed.xml"]')
+      .locator(`input[placeholder="${FEED_INPUT_PLACEHOLDER}"]`)
       .fill(newUrl);
     await page.locator(".btn-primary").click();
-    // Server saves the URL immediately (no RSS fetch); title is null so the URL
-    // is shown as the feed name via `fd.title ?? fd.url`
+    // Discover resolves the URL as a valid feed (content-type: application/rss+xml),
+    // so the same URL is saved. Title is null so the URL is shown as the feed name.
     await expect(page.locator(".feed-row", { hasText: newUrl })).toBeVisible({
       timeout: 8_000,
     });
     // Input should be cleared after a successful add
     await expect(
-      page.locator('input[placeholder="https://example.com/feed.xml"]'),
+      page.locator(`input[placeholder="${FEED_INPUT_PLACEHOLDER}"]`),
     ).toHaveValue("");
   });
 
