@@ -65,6 +65,9 @@ const mockClerkUser = ref({
   fullName: "Demo User",
   primaryEmailAddress: { emailAddress: "demo@example.com" },
   imageUrl: "",
+  hasImage: false,
+  update: vi.fn().mockResolvedValue(undefined),
+  setProfileImage: vi.fn().mockResolvedValue(undefined),
 });
 globalThis.useUser = () => ({ user: computed(() => mockClerkUser.value) });
 globalThis.useClerk = () => ({ signOut: vi.fn() });
@@ -72,6 +75,15 @@ globalThis.useAuth = vi.fn(() => ({
   isSignedIn: ref(false),
   getToken: { value: vi.fn().mockResolvedValue(null) },
 }));
+globalThis.useUserProfile = () => ({
+  firstName: ref("Demo"),
+  lastName: ref("User"),
+  saving: ref(false),
+  error: ref(null),
+  success: ref(false),
+  saveProfile: vi.fn(),
+  uploadAvatar: vi.fn(),
+});
 
 // Global stubs — covers Nuxt built-ins, Vue Transition, and every app
 // component that Nuxt auto-imports. Registering them here lets Vue resolve
@@ -109,6 +121,7 @@ config.global.stubs = {
   TweetCard: true,
   PhotoCard: true,
   AvatarButton: true,
+  UserProfile: true,
   SettingsFeeds: true,
   SettingsConnections: true,
   SettingsReading: true,
