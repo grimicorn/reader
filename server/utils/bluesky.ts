@@ -19,6 +19,7 @@ export async function createBlueskySession(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ identifier, password: appPassword }),
+    signal: AbortSignal.timeout(10_000),
   });
 
   if (!response.ok) {

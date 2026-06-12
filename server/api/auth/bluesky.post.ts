@@ -17,7 +17,15 @@ export default defineEventHandler(async (event) => {
     });
   }
 
-  const session = await createBlueskySession(handle, appPassword);
+  let session;
+  try {
+    session = await createBlueskySession(handle, appPassword);
+  } catch {
+    throw createError({
+      statusCode: 401,
+      statusMessage: "Invalid Bluesky handle or app password",
+    });
+  }
 
   const db = useDb();
   await db

@@ -108,6 +108,7 @@ function cancelBlueskyForm() {
           v-model="blueskyAppPassword"
           type="password"
           placeholder="xxxx-xxxx-xxxx-xxxx"
+          autocomplete="off"
           :disabled="loading"
         />
       </div>
