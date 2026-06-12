@@ -1,5 +1,5 @@
 <script setup>
-import { computed, watch, onMounted, onUnmounted } from "vue";
+import { computed, watch, ref, onMounted, onUnmounted } from "vue";
 import { SOURCES } from "~/lib/icons";
 
 const { state, closeSearch, moveCursor } = useSearch();
@@ -16,40 +16,85 @@ const PAGES = [
   { kind: "page", id: "/login", title: "Sign in", sub: "Account & session" },
 ];
 
-const pageMatchesQuery = (p, q) =>
-  !q || p.title.toLowerCase().includes(q) || p.sub.toLowerCase().includes(q);
+const serverResults = ref([]);
+const searchLoading = ref(false);
+const searchError = ref(null);
 
-const itemHaystack = (i) =>
-  [i.title, i.text, i.caption, i.source, i.excerpt, (i.tags || []).join(" ")]
-    .join(" ")
-    .toLowerCase();
+const pageMatchesQuery = (page, query) =>
+  !query ||
+  page.title.toLowerCase().includes(query) ||
+  page.sub.toLowerCase().includes(query);
 
-const matchingItems = (items, q) =>
-  items
-    .filter((i) => !q || itemHaystack(i).includes(q))
-    .slice(0, q ? 20 : 6)
-    .map((ref) => ({ kind: "item", ref }));
+const recentItems = (items) =>
+  items.slice(0, 6).map((ref) => ({ kind: "item", ref }));
+
+const serverResultItems = (results) =>
+  results.map((result) => ({
+    kind: "item",
+    ref: {
+      id: result.id,
+      type: "article",
+      title: result.title,
+      source: result.feedId?.toString() ?? "",
+      time: result.publishedAt
+        ? new Date(result.publishedAt).toLocaleDateString()
+        : "",
+    },
+  }));
 
 const searchGroups = computed(() => {
-  const q = state.query.trim().toLowerCase();
-  const pages = PAGES.filter((p) => pageMatchesQuery(p, q));
-  const items = matchingItems(feed.items, q);
+  const query = state.query.trim().toLowerCase();
+  const pages = PAGES.filter((page) => pageMatchesQuery(page, query));
   const groups = [];
+
   if (pages.length) groups.push({ label: "Pages", rows: pages });
-  if (items.length)
-    groups.push({ label: q ? "Results" : "Recent", rows: items });
+
+  if (!query) {
+    const recent = recentItems(feed.items);
+    if (recent.length) groups.push({ label: "Recent", rows: recent });
+    return groups;
+  }
+
+  if (searchLoading.value) return groups;
+
+  const resultItems = serverResultItems(serverResults.value);
+  if (resultItems.length) groups.push({ label: "Results", rows: resultItems });
+
   return groups;
 });
+
 const searchFlat = computed(() => searchGroups.value.flatMap((g) => g.rows));
 
-const srcVar = (type) => `var(--${SOURCES[type].cls})`;
-const srcLabel = (type) => SOURCES[type].label;
+const srcVar = (type) => `var(--${SOURCES[type]?.cls ?? "accent"})`;
+const srcLabel = (type) => SOURCES[type]?.label ?? type;
+
+async function fetchSearchResults(query) {
+  if (!query) {
+    serverResults.value = [];
+    searchError.value = null;
+    return;
+  }
+
+  searchLoading.value = true;
+  searchError.value = null;
+
+  try {
+    const results = await $fetch(`/api/search?q=${encodeURIComponent(query)}`);
+    serverResults.value = results;
+  } catch (error) {
+    searchError.value = error;
+    serverResults.value = [];
+  } finally {
+    searchLoading.value = false;
+  }
+}
 
 function chooseRow(row) {
   if (row.kind === "page") navigateTo(row.id);
   else openItem(row.ref);
   closeSearch();
 }
+
 function chooseCursor() {
   const row = searchFlat.value[state.cursor];
   if (row) chooseRow(row);
@@ -57,16 +102,16 @@ function chooseCursor() {
 
 function onKey(e) {
   if (!state.open) return;
-  const n = searchFlat.value.length;
+  const total = searchFlat.value.length;
   const dispatch = {
     Escape: () => closeSearch(),
     ArrowDown: () => {
       e.preventDefault();
-      moveCursor(1, n);
+      moveCursor(1, total);
     },
     ArrowUp: () => {
       e.preventDefault();
-      moveCursor(-1, n);
+      moveCursor(-1, total);
     },
     Enter: () => {
       e.preventDefault();
@@ -76,14 +121,35 @@ function onKey(e) {
   dispatch[e.key]?.();
 }
 
+let debounceTimer = null;
+
 watch(
   () => state.query,
-  () => {
+  (newQuery) => {
     state.cursor = 0;
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => {
+      fetchSearchResults(newQuery.trim());
+    }, 300);
   },
 );
+
+watch(
+  () => state.open,
+  (isOpen) => {
+    if (!isOpen) {
+      serverResults.value = [];
+      searchError.value = null;
+      searchLoading.value = false;
+    }
+  },
+);
+
 onMounted(() => window.addEventListener("keydown", onKey));
-onUnmounted(() => window.removeEventListener("keydown", onKey));
+onUnmounted(() => {
+  window.removeEventListener("keydown", onKey);
+  clearTimeout(debounceTimer);
+});
 </script>
 
 <template>
@@ -103,46 +169,60 @@ onUnmounted(() => window.removeEventListener("keydown", onKey));
       </div>
 
       <div class="search-results">
-        <template v-for="g in searchGroups" :key="g.label">
-          <div class="sr-group">{{ g.label }}</div>
+        <div v-if="searchLoading" class="empty" style="padding: 48px 20px">
+          <p>Searching…</p>
+        </div>
+
+        <template v-else>
+          <template v-for="g in searchGroups" :key="g.label">
+            <div class="sr-group">{{ g.label }}</div>
+            <div
+              v-for="row in g.rows"
+              :key="row.kind === 'page' ? row.id : 'i' + row.ref.id"
+              class="sr-item"
+              :class="{ cursor: searchFlat.indexOf(row) === state.cursor }"
+              @mouseenter="state.cursor = searchFlat.indexOf(row)"
+              @click="chooseRow(row)"
+            >
+              <template v-if="row.kind === 'page'">
+                <span class="sr-pill" style="--c: var(--accent-soft-ink)"
+                  >PAGE</span
+                >
+                <div class="sr-main">
+                  <div class="sr-title">{{ row.title }}</div>
+                  <div class="sr-sub">{{ row.sub }}</div>
+                </div>
+              </template>
+              <template v-else>
+                <span
+                  class="sr-pill"
+                  :style="{ '--c': srcVar(row.ref.type) }"
+                  >{{ srcLabel(row.ref.type) }}</span
+                >
+                <div class="sr-main">
+                  <div class="sr-title">
+                    {{ row.ref.title || row.ref.text || row.ref.caption }}
+                  </div>
+                  <div class="sr-sub">
+                    {{ row.ref.source }} · {{ row.ref.meta || row.ref.time }}
+                  </div>
+                </div>
+              </template>
+              <span class="sr-arrow"
+                ><RIcon name="arrowRight" :size="16"
+              /></span>
+            </div>
+          </template>
+
           <div
-            v-for="row in g.rows"
-            :key="row.kind === 'page' ? row.id : 'i' + row.ref.id"
-            class="sr-item"
-            :class="{ cursor: searchFlat.indexOf(row) === state.cursor }"
-            @mouseenter="state.cursor = searchFlat.indexOf(row)"
-            @click="chooseRow(row)"
+            v-if="!searchLoading && !searchFlat.length"
+            class="empty"
+            style="padding: 48px 20px"
           >
-            <template v-if="row.kind === 'page'">
-              <span class="sr-pill" style="--c: var(--accent-soft-ink)"
-                >PAGE</span
-              >
-              <div class="sr-main">
-                <div class="sr-title">{{ row.title }}</div>
-                <div class="sr-sub">{{ row.sub }}</div>
-              </div>
-            </template>
-            <template v-else>
-              <span class="sr-pill" :style="{ '--c': srcVar(row.ref.type) }">{{
-                srcLabel(row.ref.type)
-              }}</span>
-              <div class="sr-main">
-                <div class="sr-title">
-                  {{ row.ref.title || row.ref.text || row.ref.caption }}
-                </div>
-                <div class="sr-sub">
-                  {{ row.ref.source }} · {{ row.ref.meta || row.ref.time }}
-                </div>
-              </div>
-            </template>
-            <span class="sr-arrow"><RIcon name="arrowRight" :size="16" /></span>
+            <h3>No matches</h3>
+            <p>Try a different word, source, or tag.</p>
           </div>
         </template>
-
-        <div v-if="!searchFlat.length" class="empty" style="padding: 48px 20px">
-          <h3>No matches</h3>
-          <p>Try a different word, source, or tag.</p>
-        </div>
       </div>
 
       <div class="search-foot">
