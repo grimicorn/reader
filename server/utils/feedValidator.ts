@@ -14,7 +14,7 @@ const RSS_ATOM_PATTERN = /^(\s*<\?xml[^?]*\?>\s*)?<(rss|feed|rdf:RDF)[^>]*>/i;
 const PRIVATE_IP_PATTERN =
   /^(127\.|10\.|172\.(1[6-9]|2\d|3[01])\.|192\.168\.|169\.254\.|::1$|fc|fd)/i;
 
-const ALLOWED_PROTOCOLS = new Set(["http:", "https:"]);
+const ALLOWED_PROTOCOLS = new Set(["https:"]);
 
 export function looksLikeValidFeed(body: string): boolean {
   return RSS_ATOM_PATTERN.test(body);
@@ -45,6 +45,11 @@ export async function fetchFeedBody(
   url: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<string> {
+  // Validate the original URL before any proxy resolution
+  if (!isAllowedUrl(url)) {
+    throw new Error("Feed URL is not allowed");
+  }
+
   const targetUrl = resolveTargetUrl(url);
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), FEED_FETCH_TIMEOUT_MS);
@@ -52,14 +57,38 @@ export async function fetchFeedBody(
   try {
     const response = await fetchImpl(targetUrl, {
       signal: controller.signal,
+      redirect: "manual",
     });
 
-    if (!response.ok) {
+    // Handle redirects manually to validate each hop
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      if (!location) {
+        throw new Error("Redirect response missing Location header");
+      }
+
+      // Resolve relative redirects against the target URL
+      const redirectUrl = new URL(location, targetUrl).toString();
+
+      // Validate the redirect target against the original URL rules
+      if (!isAllowedUrl(redirectUrl)) {
+        throw new Error("Feed redirect target is not allowed");
+      }
+
+      // Follow the redirect by recursively calling fetchFeedBody
+      clearTimeout(timeoutId);
+      return await fetchFeedBody(redirectUrl, fetchImpl);
+    }
+
+    // Only accept 2xx status codes
+    if (response.status < 200 || response.status >= 300) {
       throw new Error(`Feed server responded with status ${response.status}`);
     }
 
     const reader = response.body?.getReader();
-    if (!reader) return await response.text();
+    if (!reader) {
+      throw new Error("Response body is not readable");
+    }
 
     const chunks: Uint8Array[] = [];
     let totalBytes = 0;
@@ -93,7 +122,7 @@ export async function validateFeedUrl(
   url: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<boolean> {
-  if (!FEED_FETCH_PROXY_URL && !isAllowedUrl(url)) return false;
+  if (!isAllowedUrl(url)) return false;
 
   try {
     const body = await fetchFeedBody(url, fetchImpl);
