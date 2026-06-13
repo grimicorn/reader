@@ -7,9 +7,10 @@ test.describe("Settings > Feeds", () => {
       timeout: 10_000,
     });
     // The add button is :disabled="loading" while onMounted(load) is in flight.
-    // The heading appears from SSR before load() completes, so networkidle
-    // waits for the API call to finish (loading → false, button enabled).
-    await page.waitForLoadState("networkidle", { timeout: 15_000 });
+    // Wait for it to become enabled — this is a deterministic signal that
+    // load() has completed and the feed list has rendered, regardless of how
+    // long the DB (e.g. tsvector triggers on INSERT) takes to respond.
+    await expect(page.locator(".btn-primary")).toBeEnabled({ timeout: 15_000 });
   });
 
   test("shows seeded feed in the list", async ({ page }) => {
