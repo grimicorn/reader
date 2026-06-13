@@ -6,6 +6,7 @@
 
 ALTER TABLE "feed_items"
   ADD COLUMN IF NOT EXISTS "search_vector" tsvector;
+--> statement-breakpoint
 
 -- Back-fill existing rows.
 UPDATE "feed_items"
@@ -13,10 +14,12 @@ SET "search_vector" = to_tsvector(
   'english',
   coalesce(title, '') || ' ' || coalesce(content, '')
 );
+--> statement-breakpoint
 
 -- GIN index for fast full-text lookups.
 CREATE INDEX IF NOT EXISTS "feed_items_search_vector_gin_idx"
   ON "feed_items" USING gin ("search_vector");
+--> statement-breakpoint
 
 -- Trigger function that keeps search_vector up to date on every write.
 CREATE OR REPLACE FUNCTION feed_items_search_vector_update()
@@ -29,8 +32,10 @@ BEGIN
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+--> statement-breakpoint
 
 DROP TRIGGER IF EXISTS feed_items_search_vector_trigger ON "feed_items";
+--> statement-breakpoint
 
 CREATE TRIGGER feed_items_search_vector_trigger
 BEFORE INSERT OR UPDATE ON "feed_items"
