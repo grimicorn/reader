@@ -36,7 +36,7 @@ const PROVIDERS: Omit<Connection, "connected" | "account" | "since">[] = [
   },
 ];
 
-const OAUTH_PROVIDERS = new Set(["youtube"]);
+const OAUTH_PROVIDERS = new Set(["youtube", "instagram"]);
 const FORM_PROVIDERS = new Set(["bluesky"]);
 
 function formatSince(iso: string | null): string {
