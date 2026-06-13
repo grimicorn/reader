@@ -169,7 +169,7 @@ export async function fetchFeedBody(
   }
 }
 
-export async function validateFeedUrl(
+export async function validateFeedContent(
   url: string,
   fetchImpl: typeof fetch = fetch,
 ): Promise<boolean> {

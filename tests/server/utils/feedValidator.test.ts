@@ -2,7 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import {
   looksLikeValidFeed,
   fetchFeedBody,
-  validateFeedUrl,
+  validateFeedContent,
 } from "../../../server/utils/feedValidator";
 
 function makeMockFetch(body: string, status = 200) {
@@ -238,12 +238,12 @@ describe("fetchFeedBody", () => {
   });
 });
 
-describe("validateFeedUrl", () => {
+describe("validateFeedContent", () => {
   it("returns true when the URL resolves to a valid RSS feed", async () => {
     const rssBody = `<?xml version="1.0"?><rss version="2.0"><channel></channel></rss>`;
     const mockFetch = makeMockFetch(rssBody);
 
-    const result = await validateFeedUrl(
+    const result = await validateFeedContent(
       "https://example.com/feed.xml",
       mockFetch as unknown as typeof fetch,
     );
@@ -255,7 +255,7 @@ describe("validateFeedUrl", () => {
     const atomBody = `<?xml version="1.0"?><feed xmlns="http://www.w3.org/2005/Atom"></feed>`;
     const mockFetch = makeMockFetch(atomBody);
 
-    const result = await validateFeedUrl(
+    const result = await validateFeedContent(
       "https://example.com/atom.xml",
       mockFetch as unknown as typeof fetch,
     );
@@ -267,7 +267,7 @@ describe("validateFeedUrl", () => {
     const htmlBody = `<!DOCTYPE html><html><body><p>Not a feed</p></body></html>`;
     const mockFetch = makeMockFetch(htmlBody);
 
-    const result = await validateFeedUrl(
+    const result = await validateFeedContent(
       "https://example.com/",
       mockFetch as unknown as typeof fetch,
     );
@@ -280,7 +280,7 @@ describe("validateFeedUrl", () => {
       .fn()
       .mockRejectedValue(new Error("Network unreachable"));
 
-    const result = await validateFeedUrl(
+    const result = await validateFeedContent(
       "https://unreachable.example.com/feed.xml",
       mockFetch as unknown as typeof fetch,
     );
@@ -291,7 +291,7 @@ describe("validateFeedUrl", () => {
   it("returns false when the server returns an empty body", async () => {
     const mockFetch = makeMockFetch("");
 
-    const result = await validateFeedUrl(
+    const result = await validateFeedContent(
       "https://example.com/404",
       mockFetch as unknown as typeof fetch,
     );
@@ -302,7 +302,7 @@ describe("validateFeedUrl", () => {
   it("returns false for private/loopback URLs", async () => {
     const mockFetch = vi.fn();
 
-    const result = await validateFeedUrl(
+    const result = await validateFeedContent(
       "http://127.0.0.1/feed.xml",
       mockFetch as unknown as typeof fetch,
     );
@@ -316,7 +316,7 @@ describe("validateFeedUrl", () => {
     process.env.NUXT_FEED_DISCOVERY_ALLOWED_HOSTS = "127.0.0.1:3099";
 
     try {
-      const { validateFeedUrl: freshValidateFeedUrl } = await import(
+      const { validateFeedContent: freshValidateFeedUrl } = await import(
         "../../../server/utils/feedValidator?cachebust=" + Date.now()
       );
 
@@ -342,7 +342,7 @@ describe("validateFeedUrl", () => {
   it("returns false for localhost hostname", async () => {
     const mockFetch = vi.fn();
 
-    const result = await validateFeedUrl(
+    const result = await validateFeedContent(
       "https://localhost/feed.xml",
       mockFetch as unknown as typeof fetch,
     );
@@ -354,7 +354,7 @@ describe("validateFeedUrl", () => {
   it("returns false for 0.0.0.0 address", async () => {
     const mockFetch = vi.fn();
 
-    const result = await validateFeedUrl(
+    const result = await validateFeedContent(
       "https://0.0.0.0/feed.xml",
       mockFetch as unknown as typeof fetch,
     );
@@ -366,7 +366,7 @@ describe("validateFeedUrl", () => {
   it("returns false for IPv6-mapped IPv4 addresses (::ffff:)", async () => {
     const mockFetch = vi.fn();
 
-    const result = await validateFeedUrl(
+    const result = await validateFeedContent(
       "https://[::ffff:192.168.1.1]/feed.xml",
       mockFetch as unknown as typeof fetch,
     );
@@ -378,7 +378,7 @@ describe("validateFeedUrl", () => {
   it("returns false for IPv6 loopback address (::1)", async () => {
     const mockFetch = vi.fn();
 
-    const result = await validateFeedUrl(
+    const result = await validateFeedContent(
       "https://[::1]/feed.xml",
       mockFetch as unknown as typeof fetch,
     );
@@ -390,7 +390,7 @@ describe("validateFeedUrl", () => {
   it("returns false for IPv6 ULA addresses (fc00::/7)", async () => {
     const mockFetch = vi.fn();
 
-    const result = await validateFeedUrl(
+    const result = await validateFeedContent(
       "https://[fc00::1]/feed.xml",
       mockFetch as unknown as typeof fetch,
     );
@@ -403,7 +403,7 @@ describe("validateFeedUrl", () => {
     const feedBody = `<?xml version="1.0"?><rss version="2.0"><channel></channel></rss>`;
     const mockFetch = makeMockFetch(feedBody);
 
-    const result = await validateFeedUrl(
+    const result = await validateFeedContent(
       "https://fdroid.org/feed.xml",
       mockFetch as unknown as typeof fetch,
     );
@@ -415,7 +415,7 @@ describe("validateFeedUrl", () => {
   it("returns false for non-http/https URLs", async () => {
     const mockFetch = vi.fn();
 
-    const result = await validateFeedUrl(
+    const result = await validateFeedContent(
       "file:///etc/passwd",
       mockFetch as unknown as typeof fetch,
     );
@@ -432,7 +432,7 @@ describe("validateFeedUrl", () => {
     const mockFetch = vi.fn().mockRejectedValue(abortError);
 
     await expect(
-      validateFeedUrl(
+      validateFeedContent(
         "https://slow.example.com/feed.xml",
         mockFetch as unknown as typeof fetch,
       ),
