@@ -8,30 +8,34 @@ import {
 export const MOCK_PORT = Number(process.env.E2E_MOCK_SERVER_PORT ?? 3099);
 export const MOCK_BASE_URL = `http://127.0.0.1:${MOCK_PORT}`;
 
+const MINIMAL_RSS_FEED =
+  '<?xml version="1.0"?><rss version="2.0"><channel><title>Mock Feed</title></channel></rss>';
+
 let server: Server | null = null;
 
-type RouteKey = `${"GET" | "POST"} ${string}`;
-type RouteHandler = (_res: ServerResponse) => void;
-
-function jsonOk(res: ServerResponse, body: unknown): void {
-  res.writeHead(200, { "Content-Type": "application/json" });
-  res.end(JSON.stringify(body));
+function parseQueryParams(url: string): URLSearchParams {
+  return new URLSearchParams((url ?? "").split("?")[1] ?? "");
 }
 
-const routes: Record<RouteKey, RouteHandler> = {
-  // ── OAuth 2.0 token exchange (shared by all providers) ───────────────────
-  "POST /token": (res) =>
-    jsonOk(res, {
+// ── OAuth 2.0 token exchange (shared by all providers) ───────────────────
+function handleTokenExchange(res: ServerResponse): void {
+  res.writeHead(200, { "Content-Type": "application/json" });
+  res.end(
+    JSON.stringify({
       access_token: "mock_access_token",
       refresh_token: "mock_refresh_token",
       expires_in: 3600,
       scope: "https://www.googleapis.com/auth/youtube.readonly",
       token_type: "Bearer",
     }),
+  );
+}
 
-  // ── YouTube: channel info ────────────────────────────────────────────────
-  "GET /youtube/v3/channels": (res) =>
-    jsonOk(res, {
+// ── YouTube: channel info ────────────────────────────────────────────────
+function handleYouTubeChannels(res: ServerResponse): void {
+  res.writeHead(200, { "Content-Type": "application/json" });
+  res.end(
+    JSON.stringify({
       items: [
         {
           snippet: {
@@ -41,35 +45,60 @@ const routes: Record<RouteKey, RouteHandler> = {
         },
       ],
     }),
+  );
+}
 
-  // ── Instagram: token exchange ────────────────────────────────────────────
-  "POST /v19.0/oauth/access_token": (res) =>
-    jsonOk(res, {
+// ── Instagram: token exchange ────────────────────────────────────────────
+function handleInstagramTokenExchange(res: ServerResponse): void {
+  res.writeHead(200, { "Content-Type": "application/json" });
+  res.end(
+    JSON.stringify({
       access_token: "mock_instagram_access_token",
       token_type: "bearer",
     }),
+  );
+}
 
-  // ── Instagram: user info ─────────────────────────────────────────────────
-  "GET /v19.0/me": (res) =>
-    jsonOk(res, {
+// ── Instagram: user info ─────────────────────────────────────────────────
+function handleInstagramUserInfo(res: ServerResponse): void {
+  res.writeHead(200, { "Content-Type": "application/json" });
+  res.end(
+    JSON.stringify({
       id: "123456789",
       username: "e2etestuser",
     }),
+  );
+}
 
-  // Add future providers here:
-  // "GET /2/users/me": (res) => jsonOk(res, { ... }),  // X (Twitter)
-};
+// ── Feed proxy: returns a minimal valid RSS feed for any URL ─────────────
+// Used by the feed validator (FEED_FETCH_PROXY_URL) so e2e tests never
+// make real outbound HTTP requests when adding a feed.
+function handleFeedProxy(req: IncomingMessage, res: ServerResponse): void {
+  const feedUrl = parseQueryParams(req.url ?? "").get("url");
 
-function handle(req: IncomingMessage, res: ServerResponse): void {
-  const method = (req.method ?? "GET") as "GET" | "POST";
-  const path = (req.url ?? "/").split("?")[0];
-  const key: RouteKey = `${method} ${path}`;
-  const handler = routes[key];
-
-  if (handler) {
-    handler(res);
+  if (!feedUrl) {
+    res.writeHead(400, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "Missing required query parameter: url" }));
     return;
   }
+
+  res.writeHead(200, { "Content-Type": "application/rss+xml" });
+  res.end(MINIMAL_RSS_FEED);
+}
+
+function handle(req: IncomingMessage, res: ServerResponse): void {
+  const method = req.method ?? "GET";
+  const path = (req.url ?? "/").split("?")[0];
+
+  if (method === "POST" && path === "/token") return handleTokenExchange(res);
+  if (method === "GET" && path === "/youtube/v3/channels")
+    return handleYouTubeChannels(res);
+  if (method === "POST" && path === "/v19.0/oauth/access_token")
+    return handleInstagramTokenExchange(res);
+  if (method === "GET" && path === "/v19.0/me")
+    return handleInstagramUserInfo(res);
+  if (method === "GET" && path === "/feed-proxy")
+    return handleFeedProxy(req, res);
 
   // Loud 404 so missing mocks are immediately obvious in the test output
   console.error(`[mock-server] No handler for ${method} ${path}`);

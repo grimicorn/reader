@@ -60,6 +60,7 @@ const nitroGlobals = {
   buildInstagramAuthUrl: "readonly",
   exchangeInstagramCode: "readonly",
   getInstagramUserInfo: "readonly",
+  createBlueskySession: "readonly",
 };
 
 export default [
