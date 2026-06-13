@@ -1,4 +1,8 @@
 import { test, expect } from "@playwright/test";
+import { MOCK_BASE_URL } from "../mock-server";
+
+const FEED_INPUT_PLACEHOLDER =
+  "https://example.com or https://example.com/feed.xml";
 
 test.describe("Settings > Feeds", () => {
   test.beforeEach(async ({ page }) => {
@@ -6,10 +10,11 @@ test.describe("Settings > Feeds", () => {
     await expect(page.locator("h2").getByText("RSS & Podcasts")).toBeVisible({
       timeout: 10_000,
     });
-    // The add button is :disabled="loading" while onMounted(load) is in flight.
-    // The heading appears from SSR before load() completes, so networkidle
-    // waits for the API call to finish (loading → false, button enabled).
-    await page.waitForLoadState("networkidle", { timeout: 15_000 });
+    // The add button is :disabled="loading || busy" while onMounted(load) is in
+    // flight. The heading appears from SSR before load() completes, so waiting
+    // for the button to be enabled is a reliable signal that the /api/feeds call
+    // has finished and the feed list has been populated.
+    await expect(page.locator(".btn-primary")).toBeEnabled({ timeout: 15_000 });
   });
 
   test("shows seeded feed in the list", async ({ page }) => {
@@ -26,13 +31,13 @@ test.describe("Settings > Feeds", () => {
 
   test("add feed input is present", async ({ page }) => {
     await expect(
-      page.locator('input[placeholder="https://example.com/feed.xml"]'),
+      page.locator(`input[placeholder="${FEED_INPUT_PLACEHOLDER}"]`),
     ).toBeVisible();
   });
 
   test("add feed button is disabled when input is empty", async ({ page }) => {
     const input = page.locator(
-      'input[placeholder="https://example.com/feed.xml"]',
+      `input[placeholder="${FEED_INPUT_PLACEHOLDER}"]`,
     );
     await expect(input).toHaveValue("");
     // Button should not submit an empty form
@@ -43,21 +48,24 @@ test.describe("Settings > Feeds", () => {
   });
 
   test("can add a new feed URL", async ({ page }) => {
-    // Use a unique URL per run to avoid duplicate key errors if teardown
-    // did not complete cleanly in a prior run (e.g. concurrent CI jobs).
-    const newUrl = `https://test-add-${crypto.randomUUID()}.example.com/feed.xml`;
+    // Use the mock server's /feed.xml endpoint so the discover step resolves
+    // without real outbound HTTP requests. The mock returns a valid RSS document
+    // with content-type application/rss+xml so both discovery and validation pass.
+    const newUrl = `${MOCK_BASE_URL}/feed.xml`;
     await page
-      .locator('input[placeholder="https://example.com/feed.xml"]')
+      .locator(`input[placeholder="${FEED_INPUT_PLACEHOLDER}"]`)
       .fill(newUrl);
     await page.locator(".btn-primary").click();
-    // Server saves the URL immediately (no RSS fetch); title is null so the URL
-    // is shown as the feed name via `fd.title ?? fd.url`
-    await expect(page.locator(".feed-row", { hasText: newUrl })).toBeVisible({
-      timeout: 8_000,
-    });
+
+    // The feed is stored without a title (feeds.post.ts does not parse feed
+    // metadata), so .feed-name falls back to displaying the URL.
+    const feedRow = page.locator(".feed-row", { hasText: newUrl });
+    await expect(feedRow).toBeVisible({ timeout: 8_000 });
+    await expect(feedRow.locator(".feed-name")).toHaveText(newUrl);
+
     // Input should be cleared after a successful add
     await expect(
-      page.locator('input[placeholder="https://example.com/feed.xml"]'),
+      page.locator(`input[placeholder="${FEED_INPUT_PLACEHOLDER}"]`),
     ).toHaveValue("");
   });
 
