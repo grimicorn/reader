@@ -102,7 +102,7 @@ describe("SettingsConnections", () => {
     const wrapper = shallowMount(SettingsConnections);
     await wrapper.findAll("button.btn")[1].trigger("click");
     expect(wrapper.find(".bluesky-form").exists()).toBe(true);
-    const formButtons = wrapper.findAll(".form-actions button");
+    const formButtons = wrapper.findAll(".bluesky-actions button");
     const cancelButton = formButtons.find((btn) => btn.text() === "Cancel");
     await cancelButton!.trigger("click");
     expect(wrapper.find(".bluesky-form").exists()).toBe(false);
@@ -118,7 +118,7 @@ describe("SettingsConnections", () => {
     await wrapper.find("#bluesky-handle").setValue("you.bsky.social");
     await wrapper.find("#bluesky-app-password").setValue("xxxx-xxxx-xxxx-xxxx");
     const connectButton = wrapper
-      .findAll(".form-actions button")
+      .findAll(".bluesky-actions button")
       .find((btn) => btn.text() === "Connect");
     await connectButton!.trigger("click");
     expect(mockConnectBluesky).toHaveBeenCalledWith(

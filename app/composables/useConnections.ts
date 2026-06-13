@@ -100,7 +100,13 @@ export function useConnections() {
     }
   }
 
+  function normalizeBlueskyHandle(handle: string): string {
+    const stripped = handle.startsWith("@") ? handle.slice(1) : handle;
+    return stripped.includes(".") ? stripped : `${stripped}.bsky.social`;
+  }
+
   async function connectBluesky(handle: string, appPassword: string) {
+    handle = normalizeBlueskyHandle(handle);
     loading.value = true;
     error.value = null;
     try {

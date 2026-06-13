@@ -103,6 +103,36 @@ describe("useConnections", () => {
     });
   });
 
+  describe("normalizeBlueskyHandle()", () => {
+    async function postedHandle(handle: string): Promise<string> {
+      mockFetch.mockResolvedValueOnce({ ok: true, handle });
+      mockFetch.mockResolvedValueOnce([]);
+      const { connectBluesky } = useConnections();
+      await connectBluesky(handle, "xxxx-xxxx-xxxx-xxxx");
+      return mockFetch.mock.calls[0][1].body.handle;
+    }
+
+    it("appends .bsky.social when given a bare handle", async () => {
+      expect(await postedHandle("grimicorn")).toBe("grimicorn.bsky.social");
+    });
+
+    it("strips leading @ and appends .bsky.social", async () => {
+      expect(await postedHandle("@grimicorn")).toBe("grimicorn.bsky.social");
+    });
+
+    it("passes through a fully qualified handle unchanged", async () => {
+      expect(await postedHandle("grimicorn.bsky.social")).toBe(
+        "grimicorn.bsky.social",
+      );
+    });
+
+    it("strips leading @ from a fully qualified handle", async () => {
+      expect(await postedHandle("@grimicorn.bsky.social")).toBe(
+        "grimicorn.bsky.social",
+      );
+    });
+  });
+
   describe("connectBluesky()", () => {
     it("posts to /api/auth/bluesky and reloads connections on success", async () => {
       mockFetch.mockResolvedValueOnce({ ok: true, handle: "you.bsky.social" });
