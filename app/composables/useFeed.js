@@ -73,15 +73,32 @@ const skeletonKinds = [
 export function useFeed() {
   const { showToast } = useToast();
 
-  function setupWatchers() {
+  async function loadSettingsFromDb() {
+    const { load } = useUserSettings();
+    const settings = await load();
+    state.layout = settings.layout ?? "timeline";
+    state.unreadOnly = settings.showUnreadOnly ?? false;
+  }
+
+  async function setupWatchers() {
     if (initialized || !import.meta.client) return;
     initialized = true;
-    state.layout = localStorage.getItem("reader.layout") || "timeline";
+
+    await loadSettingsFromDb();
+
     watch(
       () => state.layout,
-      (v) => {
-        localStorage.setItem("reader.layout", v);
+      (layout) => {
+        const { save } = useUserSettings();
+        save({ layout });
         runFeedLoad(380);
+      },
+    );
+    watch(
+      () => state.unreadOnly,
+      (showUnreadOnly) => {
+        const { save } = useUserSettings();
+        save({ showUnreadOnly });
       },
     );
     watch(
