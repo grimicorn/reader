@@ -64,23 +64,13 @@ function handleFeedProxy(req: IncomingMessage, res: ServerResponse): void {
   res.end(MINIMAL_RSS_FEED);
 }
 
-function handle(req: IncomingMessage, res: ServerResponse): void {
-  const method = req.method ?? "GET";
-  const path = (req.url ?? "/").split("?")[0];
-
-  if (method === "POST" && path === "/token") return handleTokenExchange(res);
-  if (method === "GET" && path === "/youtube/v3/channels")
-    return handleYouTubeChannels(res);
-  if (method === "GET" && path === "/feed-proxy")
-    return handleFeedProxy(req, res);
-
-  // ── RSS feed stub for feed-discovery e2e tests ───────────────────────────
-  if (method === "GET" && path === "/feed.xml") {
-    res.writeHead(200, {
-      "Content-Type": "application/rss+xml; charset=utf-8",
-    });
-    res.end(
-      `<?xml version="1.0" encoding="UTF-8"?>
+// ── RSS feed stub for feed-discovery e2e tests ───────────────────────────
+function handleFeedXml(res: ServerResponse): void {
+  res.writeHead(200, {
+    "Content-Type": "application/rss+xml; charset=utf-8",
+  });
+  res.end(
+    `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">
   <channel>
     <title>E2E Mock Feed</title>
@@ -88,21 +78,63 @@ function handle(req: IncomingMessage, res: ServerResponse): void {
     <description>Mock RSS feed for e2e tests</description>
   </channel>
 </rss>`,
-    );
-    return;
-  }
+  );
+}
 
-  // Add future providers here:
-  // ── X (Twitter): user lookup ─────────────────────────────────────────────
-  // if (method === "GET" && path === "/2/users/me") { ... }
-  //
-  // ── Instagram: user info ─────────────────────────────────────────────────
-  // if (method === "GET" && path.startsWith("/v20.0/me")) { ... }
-
+function handleNotFound(
+  method: string,
+  path: string,
+  res: ServerResponse,
+): void {
   // Loud 404 so missing mocks are immediately obvious in the test output
   console.error(`[mock-server] No handler for ${method} ${path}`);
   res.writeHead(404, { "Content-Type": "application/json" });
   res.end(JSON.stringify({ error: `No mock handler for ${method} ${path}` }));
+}
+
+type RouteHandler = {
+  method: string;
+  path: string;
+  handler: (_req: IncomingMessage, _res: ServerResponse) => void;
+};
+
+const ROUTE_HANDLERS: RouteHandler[] = [
+  {
+    method: "POST",
+    path: "/token",
+    handler: (_req, res) => handleTokenExchange(res),
+  },
+  {
+    method: "GET",
+    path: "/youtube/v3/channels",
+    handler: (_req, res) => handleYouTubeChannels(res),
+  },
+  {
+    method: "GET",
+    path: "/feed-proxy",
+    handler: (req, res) => handleFeedProxy(req, res),
+  },
+  {
+    method: "GET",
+    path: "/feed.xml",
+    handler: (_req, res) => handleFeedXml(res),
+  },
+  // Add future providers here:
+  // { method: "GET", path: "/2/users/me", handler: handleXUser },       // X (Twitter)
+  // { method: "GET", path: "/v20.0/me", handler: handleInstagramUser }, // Instagram
+];
+
+function handle(req: IncomingMessage, res: ServerResponse): void {
+  const method = req.method ?? "GET";
+  const path = (req.url ?? "/").split("?")[0];
+
+  const route = ROUTE_HANDLERS.find(
+    (entry) => entry.method === method && entry.path === path,
+  );
+
+  if (route) return route.handler(req, res);
+
+  handleNotFound(method, path, res);
 }
 
 export function startMockServer(): Promise<void> {
