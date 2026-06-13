@@ -1,5 +1,4 @@
 import { test, expect } from "@playwright/test";
-import { MOCK_BASE_URL } from "../mock-server";
 
 const FEED_INPUT_PLACEHOLDER =
   "https://example.com or https://example.com/feed.xml";

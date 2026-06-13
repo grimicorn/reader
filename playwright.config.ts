@@ -98,6 +98,9 @@ export default defineConfig({
       // Allow the mock server's loopback address through SSRF validation so
       // feed-discovery e2e tests can use the mock RSS endpoint.
       NUXT_FEED_DISCOVERY_ALLOWED_HOSTS: `127.0.0.1:${MOCK_PORT}`,
+      // Route feed-validation fetches through the mock server so no real HTTP
+      // requests are made when adding a feed URL during e2e tests.
+      FEED_FETCH_PROXY_URL: `${MOCK_BASE_URL}/feed-proxy`,
     },
     stdout: "pipe",
     stderr: "pipe",
